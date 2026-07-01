@@ -1,0 +1,11 @@
+# Dépendances
+node_modules/
+
+# Variables d'environnement (secrets — jamais versionnées)
+.env
+
+# Rapports de tests / couverture
+coverage/
+
+# Logs
+*.log
