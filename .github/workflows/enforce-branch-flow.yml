@@ -1,0 +1,13 @@
+name: enforce-branch-flow
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: N'autoriser les PR vers main que depuis dev
+        if: github.head_ref != 'dev'
+        run: |
+          echo "::error::PR vers main autorisées uniquement depuis 'dev' (source : ${{ github.head_ref }})"
+          exit 1
