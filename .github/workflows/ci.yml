@@ -1,0 +1,75 @@
+name: CI/CD
+
+on: [push, pull_request]
+
+jobs:
+  # ============ JOB 1 : qualité (lint runner + tests Docker) ============
+  quality:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Copier le fichier d'environnement
+        run: cp .env.dist .env
+
+      - name: Tests dans Docker
+        run: docker compose run --rm app npm test | tee test-report.log
+
+      - name: Publier le rapport de tests (artefact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: test-report.log
+
+  # ============ JOB 2 : build de l'image Docker ============
+  build:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Définir le tag SHA court
+        id: vars
+        run: echo "sha_short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Construire l'image de production
+        run: docker build --target production -t trustipro-api:${{ steps.vars.outputs.sha_short }} .
+
+      - name: Lister l'image construite
+        run: docker images trustipro-api
+
+  # ============ JOB 3 : déploiement simulé (main uniquement) ============
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rendre deploy.sh exécutable
+        run: chmod +x deploy.sh
+
+      - name: Déploiement simulé
+        run: ./deploy.sh "${GITHUB_SHA::7}"
+
+      - name: Publier deploy.log (artefact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-log
+          path: deploy.log
