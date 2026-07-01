@@ -36,7 +36,7 @@ Choix expliqués :
 
 **docker-compose.yml** : service `app` (construit sur l'étape `builder` pour pouvoir lancer `npm test`), service `db` (PostgreSQL 16), volume nommé `trustipro_data` pour la persistance, variables chargées via `env_file: .env`. Le service `app` reçoit `DB_HOST=db` pour joindre la base par le DNS interne de compose.
 
-> Note : le service `app` cible l'étape `builder` (avec jest) et non l'image `production` légère : c'est cette dernière que le job `build` de la CI construit et pourra pousser sur ghcr. On sépare ainsi l'image de dev/test de l'artefact de production.
+> Note : le service `app` cible l'étape `builder` (avec jest) et non l'image `production` légère : c'est cette dernière que le job `build` de la CI construit puis pousse sur ghcr (uniquement sur main). On sépare ainsi l'image de dev/test de l'artefact de production.
 
 ## 3. Pipeline CI/CD
 
@@ -50,6 +50,9 @@ flowchart TD
 
 - **`quality`** : `npm ci` puis `npm run lint` sur le runner, puis les tests dans Docker (`docker compose run --rm app npm test`). Publie `test-report.log` en artefact. Échoue si le lint ou les tests échouent.
 - **`build`** : construit l'image de production et la tague avec le SHA court du commit (`${GITHUB_SHA::7}`).
+  Sur `main` uniquement, l'image est aussi publiée sur GitHub Container Registry
+  (ghcr.io) avec deux tags : le SHA court et `latest`.
+
 - **`deploy`** : conditionné par `if: github.ref == 'refs/heads/main'` → ne s'exécute **que** sur `main`. Lance `deploy.sh` (déploiement simulé) et publie `deploy.log`.
 
 Le job `deploy` est skippé sur les branches feature et pendant les PR (où `github.ref` n'est pas `refs/heads/main`) : on ne déploie qu'après fusion sur `main`.
@@ -87,7 +90,22 @@ curl localhost:3000/artisans   # liste des artisans
 
 ## 6. Ce qui n'a pas été fait / améliorations envisagées
 
-- Push de l'image sur GitHub Container Registry (ghcr.io) sur `main` : *(à compléter selon ce que tu ajoutes)*.
 - Garde-fou « PR vers main uniquement depuis dev » via un workflow dédié.
 - Le warning jest « worker process failed to exit » (pool `pg` non fermé) pourrait être corrigé, mais le code applicatif n'est pas à modifier.
 - Healthcheck applicatif plus poussé, tests d'intégration avec une vraie base, etc.
+
+## Bonus réalisés
+
+- Image finale légère (~49 Mo, < 200 Mo).
+- Cache npm dans le job `quality` (`actions/setup-node`).
+- Trigger `pull_request` en plus du `push`.
+- Publication de l'image sur GitHub Container Registry (ghcr.io) sur `main`.
+- Badge de statut CI dans le README.
+
+## Bonus réalisés
+
+- Image finale légère (~49 Mo, < 200 Mo).
+- Cache npm dans le job `quality` (`actions/setup-node`).
+- Trigger `pull_request` en plus du `push`.
+- Publication de l'image sur GitHub Container Registry (ghcr.io) sur `main`.
+- Badge de statut CI dans le README.
