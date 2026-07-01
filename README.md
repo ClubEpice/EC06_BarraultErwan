@@ -90,7 +90,6 @@ curl localhost:3000/artisans   # liste des artisans
 
 ## 6. Ce qui n'a pas été fait / améliorations envisagées
 
-- Garde-fou « PR vers main uniquement depuis dev » via un workflow dédié.
 - Le warning jest « worker process failed to exit » (pool `pg` non fermé) pourrait être corrigé, mais le code applicatif n'est pas à modifier.
 - Healthcheck applicatif plus poussé, tests d'intégration avec une vraie base, etc.
 
@@ -101,11 +100,5 @@ curl localhost:3000/artisans   # liste des artisans
 - Trigger `pull_request` en plus du `push`.
 - Publication de l'image sur GitHub Container Registry (ghcr.io) sur `main`.
 - Badge de statut CI dans le README.
+- Garde-fou CI : PR vers `main` autorisées uniquement depuis `dev` (workflow `enforce-branch-flow`).
 
-## Bonus réalisés
-
-- Image finale légère (~49 Mo, < 200 Mo).
-- Cache npm dans le job `quality` (`actions/setup-node`).
-- Trigger `pull_request` en plus du `push`.
-- Publication de l'image sur GitHub Container Registry (ghcr.io) sur `main`.
-- Badge de statut CI dans le README.
